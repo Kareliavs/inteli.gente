@@ -121,8 +121,9 @@
   .center-delta{font-family:var(--mono);font-size:10px;font-weight:700;}
   .center-delta.up{fill:var(--current);}
   .center-delta.down{fill:var(--ref);}
-  .spider-poly{fill:rgba(47,224,196,0.14);stroke:var(--current);stroke-width:1.2;}
-  .spider-axis{stroke:rgba(255,255,255,0.12);stroke-width:1;}
+  .spider-poly{fill:rgba(47,224,196,0.10);stroke:var(--current);stroke-width:1.6;stroke-dasharray:4 3;pointer-events:none;}
+  .spider-axis{stroke:rgba(255,255,255,0.10);stroke-width:1;}
+  .grid-ring{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:1;}
   .reticle-dot{fill:var(--current);stroke:#fff;stroke-width:1.5;}
 
   .tooltip{position:fixed;pointer-events:none;background:#0F1830;border:1px solid var(--line);border-radius:8px;
@@ -382,14 +383,20 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, YEARS})=>{
     chartAnchor.innerHTML = '';
     const halo = svgEl('circle', {cx:0, cy:0, r:R_OUTER+56, fill:'url(#haloGrad)'});
     chartAnchor.appendChild(halo);
+    // radial gridlines (reading scale for bar length, expert-vis staple)
+    const gridGroup = svgEl('g', {id:'grid-group'});
+    [0.33,0.66,1].forEach(f=>{
+      gridGroup.appendChild(svgEl('circle', {cx:0,cy:0,r:R_INNER+(R_OUTER-R_INNER)*f, class:'grid-ring'}));
+    });
+    chartAnchor.appendChild(gridGroup);
     ringsGroup = svgEl('g', {id:'rings-group'});
     chartAnchor.appendChild(ringsGroup);
+    spiderGroup = svgEl('g', {id:'spider-group'});
+    chartAnchor.appendChild(spiderGroup);
     dimLabelsGroup = svgEl('g', {id:'dim-labels-group'});
     chartAnchor.appendChild(dimLabelsGroup);
     const hole = svgEl('circle', {cx:0, cy:0, r:R_INNER-5, class:'center-hole'});
     chartAnchor.appendChild(hole);
-    spiderGroup = svgEl('g', {id:'spider-group'});
-    chartAnchor.appendChild(spiderGroup);
     const reticleDot = svgEl('circle', {cx:0, cy:0, r:2.5, class:'reticle-dot'});
     chartAnchor.appendChild(reticleDot);
     idxEl = svgEl('text', {x:0, y:-8, 'text-anchor':'middle', class:'center-idx'});
@@ -572,41 +579,39 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, YEARS})=>{
       });
     });
 
-    // mini spider plot inside the hub: one axis per dimension, aligned to its wedge direction
+    // spider overlay: one axis per dimension, aligned to its wedge, spans full radar (over the bars)
     spiderGroup.innerHTML = '';
-    const spiderR = R_INNER - 12;
-    if(spiderR > 12){
-      dimsOrder.forEach(dim=>{
-        const {mid} = wedgeAngles[dim];
-        const p = polar(0,0,spiderR,mid);
-        spiderGroup.appendChild(svgEl('line',{x1:0,y1:0,x2:p.x.toFixed(1),y2:p.y.toFixed(1),class:'spider-axis'}));
+    const spiderR = R_OUTER - 4;
+    dimsOrder.forEach(dim=>{
+      const {mid} = wedgeAngles[dim];
+      const p = polar(0,0,spiderR,mid);
+      spiderGroup.appendChild(svgEl('line',{x1:0,y1:0,x2:p.x.toFixed(1),y2:p.y.toFixed(1),class:'spider-axis'}));
+    });
+    const pts = dimsOrder.map(dim=>{
+      const topics = topicsByDim[dim];
+      let sum=0,n=0;
+      topics.forEach(ts=>{
+        const v = scoresForMuni(curYear, cod)[ts];
+        if(v==null) return;
+        const meta = topicBySigla.get(ts);
+        const [vMin,vMax] = valueRange(meta.metrica);
+        sum += (v-vMin)/(vMax-vMin); n++;
       });
-      const pts = dimsOrder.map(dim=>{
-        const topics = topicsByDim[dim];
-        let sum=0,n=0;
-        topics.forEach(ts=>{
-          const v = scoresForMuni(curYear, cod)[ts];
-          if(v==null) return;
-          const meta = topicBySigla.get(ts);
-          const [vMin,vMax] = valueRange(meta.metrica);
-          sum += (v-vMin)/(vMax-vMin); n++;
-        });
-        const frac = n ? sum/n : 0;
-        return polar(0,0, spiderR*frac, wedgeAngles[dim].mid);
-      });
-      const d = pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ')+' Z';
-      spiderGroup.appendChild(svgEl('path',{d, class:'spider-poly'}));
-    }
+      const frac = n ? sum/n : 0;
+      return polar(0,0, R_INNER + (spiderR-R_INNER)*frac, wedgeAngles[dim].mid);
+    });
+    const d = pts.map((p,i)=>(i===0?'M':'L')+p.x.toFixed(1)+' '+p.y.toFixed(1)).join(' ')+' Z';
+    spiderGroup.appendChild(svgEl('path',{d, class:'spider-poly'}));
 
     const m = muniByCod.get(String(cod));
     titleEl.textContent = m ? m.nome : '';
-    subEl.textContent = m ? `${m.uf} · IBGE ${cod}` : '';
+    subEl.textContent = m ? `${m.uf} · IBGE ${cod} · ${curYear} vs ${refYear}` : '';
     const curComp = compositeScore(curYear, cod);
     const refComp = compositeScore(refYear, cod);
     idxEl.textContent = curComp!=null ? curComp.toFixed(1) : '–';
     if(curComp!=null && refComp!=null){
       const delta = curComp-refComp;
-      deltaEl.textContent = (delta>=0?'▲ +':'▼ ')+Math.abs(delta).toFixed(1)+` vs ${refYear}`;
+      deltaEl.textContent = (delta>=0?'▲ +':'▼ ')+Math.abs(delta).toFixed(1);
       deltaEl.setAttribute('class','center-delta '+(delta>=0?'up':'down'));
     } else deltaEl.textContent = '';
 
@@ -858,20 +863,44 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, YEARS})=>{
     setTimeout(updateFilterLabels, 350); // after fitBounds animation settles
   }
   function updateFilterLabels(){
-    if(state.filterLevel==null || !state.filterMatches) return;
     const year = YEARS[state.yearIdx];
-    const zoomOk = map.getZoom() >= 6;
+    const zoom = map.getZoom();
     const bounds = map.getBounds();
-    state.filterMatches.forEach(m=>{
+    if(state.filterLevel!=null && state.filterMatches){
+      const zoomOk = zoom >= 6;
+      state.filterMatches.forEach(m=>{
+        const cm = markerByCod.get(String(m.cod));
+        if(!cm) return;
+        const visible = zoomOk && bounds.contains([m.lat,m.lon]);
+        if(visible && !cm.getTooltip()){
+          const comp = compositeScore(year, m.cod);
+          cm.bindTooltip(`${m.nome} · nível ${comp!=null?comp.toFixed(1):'—'}`, {
+            permanent:true, direction:'top', className:'muni-label', offset:[0,-4]
+          });
+        } else if(!visible && cm.getTooltip()){
+          cm.unbindTooltip();
+        }
+      });
+      return;
+    }
+    // normal mode: label visible dots once zoomed in enough, capped to avoid clutter
+    const zoomOk = zoom >= 8;
+    if(!zoomOk){
+      MUNI.forEach(m=>{ const cm=markerByCod.get(String(m.cod)); if(cm && cm.getTooltip()) cm.unbindTooltip(); });
+      return;
+    }
+    const visibleMunis = MUNI.filter(m=> m.lat!=null && bounds.contains([m.lat,m.lon]));
+    const capOk = visibleMunis.length <= 300;
+    MUNI.forEach(m=>{
       const cm = markerByCod.get(String(m.cod));
       if(!cm) return;
-      const visible = zoomOk && bounds.contains([m.lat,m.lon]);
-      if(visible && !cm.getTooltip()){
+      const shouldLabel = capOk && visibleMunis.includes(m);
+      if(shouldLabel && !cm.getTooltip()){
         const comp = compositeScore(year, m.cod);
-        cm.bindTooltip(`${m.nome} · nível ${comp!=null?comp.toFixed(1):'—'}`, {
+        cm.bindTooltip(`${m.nome} · ${comp!=null?comp.toFixed(1):'—'}`, {
           permanent:true, direction:'top', className:'muni-label', offset:[0,-4]
         });
-      } else if(!visible && cm.getTooltip()){
+      } else if(!shouldLabel && cm.getTooltip()){
         cm.unbindTooltip();
       }
     });
