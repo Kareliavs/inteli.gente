@@ -1,0 +1,9 @@
+dimensao_sigla,dimensao_nome,descricao,oficial,metrica
+CI,Capacidades Institucionais,Capacidade de gestão pública municipal para planejar e executar políticas.,sim,nivel
+CIT,Governança de TIC,Planejamento e estrutura de TI/TIC na gestão municipal.,nao,percentil
+CS,Contexto Socioeconômico,"Indicadores de referência: IDHM, PIB, GINI, população, capacidade de pagamento.",nao,percentil
+CTA,Vocação Territorial,"Turismo, unidades de conservação, bioma, energia eólica, mineração.",nao,percentil
+CTD,"Infraestrutura de C,T&I","Empresas e empregos em TIC, incubadoras, parques tecnológicos, data centers.",nao,percentil
+EC,Econômica,"Geração de renda e emprego, infraestrutura urbana e de TIC, economia local.",sim,nivel
+MA,Meio Ambiente,Proteção e uso consciente dos recursos naturais e do ambiente construído.,sim,nivel
+SC,Sociocultural,"Bem-estar, redução de desigualdades, acesso a bens e serviços urbanos essenciais.",sim,nivel

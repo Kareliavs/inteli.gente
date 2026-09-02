@@ -1,0 +1,39 @@
+topico_sigla,topico_nome,dimensao_sigla,n_indicadores,metrica
+DACI,Dados Abertos e Transparência,CI,3,nivel
+ET,Estratégia e Governança Digital,CI,3,nivel
+IHS,Infraestrutura de TI (Hardware/Software),CI,2,nivel
+MT,Monitoramento e Transparência,CI,3,nivel
+SA,Serviços Públicos Digitais,CI,3,nivel
+IT,Governança e Estrutura de TIC,CIT,8,percentil
+AU,Rede de Influência Urbana,CS,1,percentil
+DR,Desigualdade de Renda (GINI),CS,1,percentil
+EP,Emprego Formal,CS,1,percentil
+FP,Capacidade Fiscal do Município,CS,2,percentil
+IDHM,Desenvolvimento Humano (IDHM),CS,1,percentil
+PIB,Produto Interno Bruto,CS,6,percentil
+PT,População Total,CS,1,percentil
+TT,"Turismo, Recursos Naturais e Energia",CTA,5,percentil
+IVCTD,Empresas e Infraestrutura de Inovação,CTD,10,percentil
+AEEC,Água e Esgoto,EC,4,nivel
+DAEC,Dados Abertos da Gestão,EC,1,nivel
+HB,Habitação e Assentamentos,EC,5,nivel
+IC,Conectividade (Internet e Banda Larga),EC,8,nivel
+IVEC,Inclusão Produtiva e Renda,EC,4,nivel
+RSEC,Coleta de Resíduos Sólidos,EC,1,nivel
+SOL,Serviços Públicos On-line,EC,2,nivel
+STGU,Gestão Inteligente da Cidade,EC,3,nivel
+TP,Transporte e Mobilidade,EC,7,nivel
+UVP,Vias Públicas (Arborização/Iluminação/Pavimentação),EC,3,nivel
+AEMA,Gestão da Água,MA,13,nivel
+AV,Áreas Verdes e Uso do Solo,MA,3,nivel
+EN,Gestão de Energia e Iluminação,MA,2,nivel
+QA,Qualidade do Ar e Emissões,MA,2,nivel
+RSMA,Coleta Seletiva de Resíduos,MA,2,nivel
+CT,Cultura e Esporte,SC,4,nivel
+ED,Educação,SC,10,nivel
+GD,Gestão de Riscos e Desastres,SC,5,nivel
+ID,Inclusão Digital,SC,3,nivel
+IS,Inclusão Social,SC,2,nivel
+PP,Participação Pública,SC,2,nivel
+SD,Saúde,SC,30,nivel
+SP,Segurança Pública,SC,3,nivel
