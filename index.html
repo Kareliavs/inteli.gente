@@ -10,7 +10,7 @@
     --bg:#0B1220; --panel:#111A2E; --panel-2:#0E1626; --line:rgba(231,236,245,0.12);
     --text:#E7ECF5; --muted:#8291A8; --muted-2:#57657C;
     --current:#3E8ED0; --ref:#F0B55C;
-    --lvl-low:#E23A23; --lvl-high:#3F9D00;
+    --lvl-low:#F5A623; --lvl-high:#2DD4BF;
     --brand-navy:#132257; --brand-teal:#2FE0C4;
     --serif: 'Source Serif Pro', Georgia, 'Iowan Old Style', serif;
     --mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
@@ -102,13 +102,13 @@
   .bar-label.nodata{fill:rgba(255,255,255,0.4);font-size:7.5px;stroke:none;}
   .dim-ring-seg{fill:rgba(255,255,255,0.06);}
   .dim-ring-seg.filled{}
-  .dim-ring-label{font-family:var(--serif);font-weight:700;font-size:13px;fill:#fff;paint-order:stroke;
-    stroke:rgba(11,18,32,0.6);stroke-width:2px;}
+  .dim-ring-label{font-family:var(--serif);font-weight:800;font-size:15px;fill:#fff;}
   .center-hole{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:2 4;}
   .reticle-dot{fill:var(--current);stroke:#fff;stroke-width:1.5;}
-  .center-text-name{fill:var(--text);font-family:var(--serif);font-size:20px;font-weight:700;}
-  .center-text-sub{fill:var(--muted);font-family:var(--mono);font-size:10.5px;}
-  .center-text-levels{font-family:var(--mono);font-size:11px;font-weight:700;}
+  .header-box{fill:rgba(17,26,46,0.88);stroke:var(--line);stroke-width:1;}
+  .center-text-name{fill:#fff;font-family:var(--serif);font-size:24px;font-weight:700;}
+  .center-text-sub{fill:var(--muted);font-family:var(--mono);font-size:12px;}
+  .center-text-levels{font-family:var(--mono);font-size:16px;font-weight:700;}
   .spider-poly{fill:rgba(47,224,196,0.10);stroke:var(--brand-teal);stroke-width:1.6;stroke-dasharray:4 3;pointer-events:none;}
   .spider-axis{stroke:rgba(255,255,255,0.08);stroke-width:1;}
   .grid-ring{fill:none;stroke:rgba(255,255,255,0.05);stroke-width:1;}
@@ -116,12 +116,18 @@
   .tooltip{position:fixed;pointer-events:none;background:#141F38;border:1px solid var(--line);border-radius:8px;
     padding:9px 11px;font-size:12px;line-height:1.5;max-width:270px;z-index:2000;opacity:0;
     transition:opacity 100ms ease;box-shadow:0 10px 26px rgba(0,0,0,0.4);color:var(--text);}
+  .tooltip.wide{max-width:340px;}
   .tooltip.show{opacity:1;}
-  .tooltip .t-title{font-weight:700;margin-bottom:3px;color:var(--text);}
+  .tooltip .t-title{font-weight:700;margin-bottom:3px;color:var(--text);font-size:13.5px;}
   .tooltip .t-dim{color:var(--muted);font-family:var(--mono);font-size:10.5px;margin-bottom:5px;}
+  .tooltip .t-sec{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:0.04em;
+    margin:8px 0 3px;padding-top:6px;border-top:1px solid var(--line);}
+  .tooltip .t-sec.pos{color:var(--lvl-high);}
+  .tooltip .t-sec.neg{color:var(--lvl-low);}
   .tooltip .t-row{display:flex;justify-content:space-between;gap:14px;}
-  .tooltip .t-row b.cur{color:var(--current);}
-  .tooltip .t-row b.ref{color:var(--ref);}
+  .tooltip .t-row span{color:var(--text);}
+  .tooltip .t-row b.cur{color:var(--current);white-space:nowrap;}
+  .tooltip .t-row b.ref{color:var(--ref);white-space:nowrap;}
 
   .muni-label{font-family:var(--mono) !important;font-size:10px !important;background:rgba(17,26,46,0.95) !important;
     border:1px solid var(--line) !important;color:var(--text) !important;padding:1px 5px !important;border-radius:4px !important;
@@ -234,7 +240,7 @@ const NS = 'http://www.w3.org/2000/svg';
 function svgEl(tag, attrs){ const el=document.createElementNS(NS,tag); for(const k in attrs) el.setAttribute(k,attrs[k]); return el; }
 function normalize(s){ return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 const LEVEL_COLORS = {1:'#A00000',2:'#E23A23',3:'#E27400',4:'#3E8ED0',5:'#1C4F9C',6:'#3F9D00',7:'#375623'};
-const LVL_LOW = '#E23A23', LVL_HIGH = '#3F9D00', LVL_NONE = '#94A3B8';
+const LVL_LOW = '#F5A623', LVL_HIGH = '#2DD4BF', LVL_NONE = '#57657C';
 function tierColor(level){ return level==null ? LVL_NONE : (level<=2 ? LVL_LOW : LVL_HIGH); }
 
 loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
@@ -322,10 +328,10 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
   const chartAnchor = svgEl('g', {id:'chart-anchor'});
   overlay.appendChild(chartAnchor);
   const haloGrad = svgEl('radialGradient', {id:'haloGrad'});
-  haloGrad.appendChild(svgEl('stop', {offset:'0%','stop-color':'#eef2f6','stop-opacity':'0'}));
-  haloGrad.appendChild(svgEl('stop', {offset:'55%','stop-color':'#eef2f6','stop-opacity':'0.55'}));
-  haloGrad.appendChild(svgEl('stop', {offset:'80%','stop-color':'#eef2f6','stop-opacity':'0.72'}));
-  haloGrad.appendChild(svgEl('stop', {offset:'100%','stop-color':'#eef2f6','stop-opacity':'0'}));
+  haloGrad.appendChild(svgEl('stop', {offset:'0%','stop-color':'#0E1626','stop-opacity':'0'}));
+  haloGrad.appendChild(svgEl('stop', {offset:'55%','stop-color':'#0E1626','stop-opacity':'0.72'}));
+  haloGrad.appendChild(svgEl('stop', {offset:'80%','stop-color':'#0E1626','stop-opacity':'0.88'}));
+  haloGrad.appendChild(svgEl('stop', {offset:'100%','stop-color':'#0E1626','stop-opacity':'0'}));
   const defs = svgEl('defs', {}); defs.appendChild(haloGrad); overlay.appendChild(defs);
 
   let ringsGroup, dimLabelsGroup, dimRingGroup, spiderGroup, titleEl, subEl, levelsEl;
@@ -377,11 +383,14 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
     const reticleDot = svgEl('circle', {cx:0, cy:0, r:2.5, class:'reticle-dot'});
     chartAnchor.appendChild(reticleDot);
 
-    titleEl = svgEl('text', {x:0, y:-R_DIMRING-46, 'text-anchor':'middle', class:'center-text-name'});
+    const headerBoxY = -R_DIMRING-66;
+    const headerBox = svgEl('rect', {x:-150, y:headerBoxY, width:300, height:68, rx:10, class:'header-box'});
+    chartAnchor.appendChild(headerBox);
+    titleEl = svgEl('text', {x:0, y:-R_DIMRING-40, 'text-anchor':'middle', class:'center-text-name'});
     chartAnchor.appendChild(titleEl);
-    subEl = svgEl('text', {x:0, y:-R_DIMRING-26, 'text-anchor':'middle', class:'center-text-sub'});
+    subEl = svgEl('text', {x:0, y:-R_DIMRING-20, 'text-anchor':'middle', class:'center-text-sub'});
     chartAnchor.appendChild(subEl);
-    levelsEl = svgEl('text', {x:0, y:-R_DIMRING-8, 'text-anchor':'middle', class:'center-text-levels'});
+    levelsEl = svgEl('text', {x:0, y:-R_DIMRING-2, 'text-anchor':'middle', class:'center-text-levels'});
     chartAnchor.appendChild(levelsEl);
 
     dimsOrder.forEach(dim=>{
@@ -394,9 +403,9 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
       label.addEventListener('mousemove', (e)=>{
         const lvl = state.focusCod!=null ? dimLevel(state.focusCod, dim, 'c') : null;
         const dest = (state.focusCod!=null && DESTAQUES[state.focusCod] && DESTAQUES[state.focusCod][dim]) || {pos:[],neg:[]};
-        const posHtml = dest.pos.map(d=>`<div class="t-row"><span>▲ ${d.nome}</span><b class="cur">${d.nivel.toFixed(1)}</b></div>`).join('');
-        const negHtml = dest.neg.map(d=>`<div class="t-row"><span>▼ ${d.nome}</span><b class="ref">${d.nivel.toFixed(1)}</b></div>`).join('');
-        showTooltip(`<div class="t-title">${info?info.nome:dim}</div><div class="t-dim">nível de maturidade atual: ${lvl!=null?lvl:'sem dado'}</div>${posHtml}${negHtml}`, e);
+        const posHtml = dest.pos.length ? `<div class="t-sec pos">Pontos Positivos</div>` + dest.pos.map(d=>`<div class="t-row"><span>${d.nome}</span><b class="cur">${d.nivel.toFixed(1)}/7</b></div>`).join('') : '';
+        const negHtml = dest.neg.length ? `<div class="t-sec neg">Pontos Negativos</div>` + dest.neg.map(d=>`<div class="t-row"><span>${d.nome}</span><b class="ref">${d.nivel.toFixed(1)}/7</b></div>`).join('') : '';
+        showTooltip(`<div class="t-title">${info?info.nome:dim}</div><div class="t-dim">nível de maturidade atual: ${lvl!=null?lvl:'sem dado'}</div>${posHtml}${negHtml}`, e, true);
         moveTooltip(e);
       });
       label.addEventListener('mouseleave', hideTooltip);
@@ -405,7 +414,7 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
   }
 
   const tooltip = document.getElementById('tooltip');
-  function showTooltip(html, evt){ tooltip.innerHTML = html; tooltip.classList.add('show'); moveTooltip(evt); }
+  function showTooltip(html, evt, wide){ tooltip.innerHTML = html; tooltip.classList.add('show'); tooltip.classList.toggle('wide', !!wide); moveTooltip(evt); }
   function moveTooltip(evt){
     const pad=14; let x=evt.clientX+pad, y=evt.clientY+pad;
     if(x+270>window.innerWidth) x=evt.clientX-270-pad;
@@ -527,6 +536,8 @@ loadData().then(({MUNI, TOPICS, DIMS, SCORES, DESTAQUES})=>{
       }
       if(dl!=null){
         const lp = polar(0,0,(ringR0+ringR1)/2, mid);
+        const chip = svgEl('circle', {cx:lp.x.toFixed(1), cy:lp.y.toFixed(1), r:12, fill:'rgba(11,18,32,0.85)', stroke:tierCol, 'stroke-width':1.5});
+        dimRingGroup.appendChild(chip);
         const lbl = svgEl('text', {x:lp.x.toFixed(1), y:lp.y.toFixed(1), 'text-anchor':'middle', 'dominant-baseline':'middle', class:'dim-ring-label'});
         lbl.textContent = dl;
         dimRingGroup.appendChild(lbl);
