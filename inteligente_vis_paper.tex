@@ -1,0 +1,158 @@
+\documentclass[10pt,twocolumn]{article}
+
+% ------------------------------------------------------------
+% This paper follows the general structure and typographic
+% conventions of an IEEE VIS submission. If you have access to
+% the official ieeevis.cls / template package, drop this content
+% into that template's \section structure — it was written to
+% map directly onto it (Abstract, CCS concepts, Introduction,
+% Related Work, ... Conclusion). A vanilla two-column `article`
+% class is used here so the file compiles with a standard
+% TeX Live install with no extra template files required.
+% ------------------------------------------------------------
+
+\usepackage[T1]{fontenc}
+\usepackage{times}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{caption}
+\usepackage[margin=1.9cm,columnsep=0.6cm]{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\setlist{noitemsep}
+
+\titlespacing*{\section}{0pt}{10pt}{6pt}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+
+\title{\vspace{-1em}\textbf{From Bilateral Pyramids to Bullet Glyphs:\\
+Adapting a Radial Demographic-Profile Technique to Sparse,\\
+Hierarchical Municipal Maturity Data}}
+
+\author{
+Karel~Villarreal Sanchez\thanks{K.~Villarreal Sanchez is with ICMC, Universidade de S\~ao Paulo. E-mail: \texttt{author@usp.br}. Author list, affiliations and acknowledgments to be completed by the author before submission.}
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Radial ``demographic profile'' glyphs — best known from commercial tools such as VisQuill's population-pyramid views — show a country's age structure as a pair of bilaterally mirrored bar sequences (male/female) radiating from a map-anchored hub. We report on adapting this glyph family to a materially different problem: municipal ``smart city'' maturity dashboards, where (i) the underlying taxonomy is a three-level hierarchy (dimension~$\rightarrow$~topic~$\rightarrow$~indicator) rather than a single bilateral split, (ii) coverage is sparse and irregularly sampled because source indicators are refreshed on independent, non-annual cycles (censuses, administrative registries, self-reported forms), and (iii) the target quantity is a discrete, officially documented ordinal scale (1--7, itself collapsed into a two-tier categorical judgment) rather than a continuous demographic share. We present the resulting design — a viewport-anchored ``lens'' that couples live map panning to a radial glyph, a bullet-graph-style single-bar-plus-reference-tick encoding that replaces the pyramid's bilateral split where no natural second category exists, a segmented seven-notch outer gauge for the official ordinal level, and explicit visual states for missing and single-observation data — together with a case-study account of reconciling our re-implementation against the source platform's production scoring pipeline, which surfaced a rounding-order defect and a null-handling ambiguity that silently changed results. We discuss the resulting design guidelines, the study's limitations (a single-stakeholder, non-formal evaluation), and directions for a controlled comparison against non-radial alternatives.
+\end{abstract}
+
+\vspace{0.3em}
+\noindent\textbf{CCS Concepts:} \textit{Human-centered computing~$\rightarrow$~Visualization design and evaluation methods; Geographic visualization; Human-centered computing~$\rightarrow$~Visual analytics.}
+
+\vspace{0.6em}
+
+\section{Introduction}
+Radial ``profile'' glyphs anchored to a map are an established idiom for summarizing a single geographic unit's multi-attribute structure at a glance. The clearest contemporary instance is VisQuill's world-demographics gallery piece\footnote{\url{https://visquill.com/gallery/world-demographics}}, which draws three pyramid-like arms — population, mortality, fertility — emanating from a selected country's location on a basemap, with a bilateral (male/female) split on each arm and a year slider driving all three simultaneously. The technique is elegant precisely because the domain affords it: age-by-sex population structure is complete, annually refreshed, and naturally bilateral.
+
+We were asked to build an analogous ``profile lens'' for a different domain: \emph{inteli.gente}, a Brazilian federal platform (Ministry of Science, Technology and Innovation) that diagnoses the maturity of 5{,}571 municipalities toward becoming ``smart and sustainable cities,'' following the ITU-T/U4SSC maturity-model tradition~\cite{itu-y4903,u4ssc}. Superficially the ask was ``build the VisQuill view, but for our indicators.'' In practice almost every structural assumption behind the original glyph broke down:
+
+\begin{itemize}
+\item There is no bilateral split. Indicators roll up through a \emph{three-level} taxonomy (four official dimensions, 25 topics, 101 weighted indicators) with no natural ``other side'' to mirror against.
+\item Coverage is not a clean annual panel. Individual indicators are refreshed on independent cycles — some annual, some tied to decennial censuses or one-off administrative surveys — so for a majority of topics the platform's own production query has, at any given time, exactly one valid historical observation.
+\item The target quantity is not a continuous share but a \emph{documented ordinal scale} (levels 1--7, aggregated by a specific weighted-average-then-round procedure at each hierarchy level, and further collapsed by the platform's own UI into a two-tier categorical judgment, ``Prepara\c{c}\~ao'' vs.\ ``Gest\~ao e Governan\c{c}a,'' at the level~2/3 boundary).
+\end{itemize}
+
+This paper documents the resulting redesign, framed explicitly as an adaptation rather than a new chart type. We see the contribution as threefold: (C1) a small set of encoding substitutions that let a bilateral radial pyramid glyph degrade gracefully to non-bilateral, sparse, ordinal data without abandoning its map-anchored radial form; (C2) an interaction pattern — a fixed on-screen reticle under which the basemap is panned, rather than a picked/searched selection — for continuously exploring many geographic units without discrete selection steps; and (C3) a methodological case study on the risk of silently reproducing an incorrect scoring formula when re-implementing a dashboard from a data export rather than the source system, and the specific visual/data-provenance devices we added once we caught it.
+
+\section{Related Work}
+\textbf{Population pyramids and radial demographic glyphs.} The age-sex pyramid is a two-centuries-old chart form; contemporary interactive variants (e.g., the U.S. Census Bureau's population pyramid dashboards, VisQuill's map-anchored version) retain the bilateral bar-pair encoding almost unchanged, varying mainly in whether the pyramid is upright/cartesian or, as in VisQuill, bent into arms radiating from a map point. Our glyph borrows the latter's map-anchoring but cannot borrow the bilateral encoding itself, for the domain reasons above.
+
+\textbf{Bullet graphs.} Few's bullet graph~\cite{few2006bullet} was designed precisely for the situation we found ourselves in: a single quantitative measure that sometimes, but not always, has a meaningful comparative reference (a target, a prior period). Few's answer — one bar for the measure, a perpendicular tick for the reference, rather than a second full bar — is the encoding we adopt for each topic in place of the pyramid's bilateral halves, once we recognized that showing two full bars when the ``before'' value is frequently identical to (or definitionally the same single observation as) the ``current'' value actively misleads readers into perceiving change that is not present in the data.
+
+\textbf{Smart-city maturity frameworks.} ISO 37120~\cite{iso37120} and the ITU-T/U4SSC Smart Sustainable Cities Maturity Model~\cite{itu-y4903,u4ssc} define the class of multi-dimension, indicator-weighted maturity scoring this platform implements; we are not aware of prior visualization work that specifically targets the \emph{sparse, irregularly-sampled} character of the underlying administrative data these frameworks are typically populated from, as opposed to the frameworks' idealized complete-panel presentation.
+
+\section{Data and Task Characterization}
+The source system aggregates 101 weighted indicators into 25 topics into 4 official dimensions (Econ\^omica, Sociocultural, Meio Ambiente, Capacidades Institucionais) via
+\[
+L_{\text{topic}} = \mathrm{round}\!\Big(\tfrac{\sum_i w_i\, n_i}{\sum_i w_i}\Big), \quad
+L_{\text{dim}} = \mathrm{round}\!\big(\overline{L_{\text{topic}}}\big), \quad
+L_{\text{city}} = \mathrm{round}\!\big(\overline{L_{\text{dim}}}\big)
+\]
+where $n_i \in \{1,\dots,7\}$ is an indicator's own maturity level and $w_i$ its weight within its topic. Two properties of this pipeline directly shaped the visualization: (1) rounding happens at \emph{each} level, so the order in which decimals are carried forward versus discarded is significant — reproducing the formula from a data export without the source query available produced an off-by-one dimension level for several municipalities, discussed in \S\ref{sec:case}; (2) each indicator's contributing value is drawn from whichever year it was \emph{most recently, non-null,} reported in — not a fixed reference year — meaning ``current'' is itself a per-indicator moving target.
+
+\subsection{Database schema}
+\label{sec:schema}
+The warehouse is PostgreSQL, schemas \texttt{stg} (staging) and \texttt{bd} (promoted, analysis-ready). The core fact table, year-partitioned (38 partitions, 1989--2025, $\sim$2.6M rows):
+\begin{center}\small\begin{tabular}{@{}ll@{}}
+\toprule \textbf{Column} & \textbf{Role} \\ \midrule
+\texttt{municipio\_cod\_ibge}, \texttt{indicador\_referencia}, \texttt{ano} & composite PK \\
+\texttt{indicador\_valor} & raw reported value \\
+\texttt{indicador\_nivel} & 1--7 maturity level \\
+\texttt{topico\_nivel}, \texttt{dimensao\_nivel}, \texttt{municipio\_nivel} & in schema, \emph{unpopulated} in our export \\
+\bottomrule\end{tabular}\end{center}
+The three roll-up columns exist but are \texttt{NULL} in every row we received, indicating they are filled by a process outside the batch scripts shipped in the repository; we therefore recompute $L_{\text{topic}}, L_{\text{dim}}, L_{\text{city}}$ client-side (\S\ref{sec:case}). \texttt{indicador\_nivel} itself comes from 101 independent per-indicator Python rules (\texttt{database/indicadores/dimensoes/*/maturidade/}), which we treat as a black box.
+
+\subsection{Offline data pipeline}
+All aggregation runs once, offline (Python), producing static tables the client fetches over HTTP: (1)~scan all partitions for the 101 weighted indicators ($\sim$526k (city, indicator, year) triples); (2)~per series, keep the latest non-null observation (``atual'') and earliest non-null (``antes''); (3)~weighted-average into topic decimals with provenance year; (4)~unweighted, single-rounding mean into dimension then city levels; (5)~top-2/bottom-2 indicators per city per dimension for the highlights panel. Output: five CSVs — \texttt{municipios.csv} (5{,}571 rows), \texttt{topics.csv}/\texttt{dims.csv} (25/4 rows), \texttt{scores.csv} (161{,}130 rows), \texttt{destaques.csv} (89{,}135 rows) — \raise.17ex\hbox{$\scriptstyle\sim$}17\,MB total, loaded once and held in memory for the session.
+
+For the analyst-facing task, we take as given (from stakeholder discussion) that the two central questions are: (T1) \emph{``How does this municipality currently stand across the four dimensions, and which topics are pulling it up or down?''} and (T2) \emph{``Where real historical data exists, is it improving or declining?''} — explicitly \emph{not} \emph{``show me a time series,''} since for a large share of topics no meaningful time series exists.
+
+\section{Design}
+\subsection{Map-anchored lens, not map-anchored selection}
+\label{sec:lens}
+VisQuill's map is a selection surface: pick a country, the glyph populates for that country. With 5{,}571 candidate municipalities rendered as a dense point field, discrete picking (search box aside) becomes the bottleneck for browsing. We instead fix the glyph's hub at the viewport's geometric center and continuously re-resolve ``which municipality is currently under the hub'' as the user pans the basemap beneath it — a magnifying-lens metaphor rather than a picker. The nearest-point query re-runs on every map \texttt{move} event (throttled to one query per animation frame via a linear scan over all candidate points — negligible cost, no spatial index needed), and the glyph's rings, gauge, and title re-render only when the resolved municipality actually changes. Discrete selection (search, click) is retained as a fast-travel mechanism that recenters the map under the fixed lens, rather than as the primary interaction.
+
+\subsection{From bilateral halves to bullet bars}
+\label{sec:bullet}
+Each topic occupies one concentric ring band within its dimension's angular wedge (wedge angular width is proportional to the dimension's topic count). Where VisQuill fills a band bilaterally (male extends one way, female the other, from a shared center), we fill a \emph{single} arc from the wedge's leading edge, proportional to the topic's current weighted score on its own 1--7 (or, for four legacy percentile-scored topics inherited from an earlier taxonomy, 0--100) scale. A short radial tick — not a second colored arc — marks the position of the earliest available historical value \emph{only when that value comes from a genuinely different year} than the current one; when a topic's entire history is one observation, no tick is drawn, and the tooltip states \emph{``sem hist\'orico anterior''} (no prior history) rather than implying an unchanged trend. This is a direct, deliberate departure from the initial bidirectional design we first built (mirroring VisQuill exactly): early informal feedback was that the mirrored bars looked like a before/after comparison even on the majority of topics where both halves were, numerically, the same single data point. A later iteration further reversed the radial stacking order (highest-scoring topic outermost, lowest innermost) on stakeholder request, so the ``strongest'' reading sits at the visually dominant outer edge.
+
+\subsection{Dual-precision level encoding}
+The production system's ``Desempenho dos t\'opicos'' view exposes topic scores to one decimal place for ranking, while the same value is rounded to an integer 1--7 badge everywhere else in the interface. We surface both: the bar's fill fraction and its curved text label reflect the un-rounded decimal score (also given verbatim in the hover tooltip), while a dashed reference arc, drawn once per wedge at the dimension's raw (pre-rounding) average and annotated with that value to one decimal, gives a group baseline against which individual topic bars can be read — mirroring the dashed ``regional/national average'' reference line in the source platform's own bar-chart view, translated into radial form. The dimension's officially rounded 1--7 level is shown separately, as a discrete seven-notch outer gauge per wedge (only the first $L_{\text{dim}}$ of seven equal segments filled, each segment's fill color drawn from a two-tier palette rather than a seven-step sequential one — see below), with the numeral itself set inside a small high-contrast chip so it stays legible regardless of which segment it overlaps.
+
+\subsection{Two-tier color, not seven-tier}
+An early iteration colored bars and the outer gauge with the platform's full seven-step sequential palette (one hue per level). Stakeholder review judged this added a scale-reading burden without adding decision-relevant information, since the platform's own UI reduces the same seven levels to a binary categorical judgment (\emph{Prepara\c{c}\~ao}, levels 1--2, vs.\ \emph{Gest\~ao e Governan\c{c}a}, levels 3--7) wherever a judgment rather than a precise value is being communicated. A second iteration replaced the platform's literal red/green pairing with an amber/teal pair after stakeholder feedback that red-green read as a value judgment (``bad/good'') the underlying two-tier label does not itself make, and that the combination had insufficient contrast against dark UI chrome. We converged on using that amber/teal partition consistently across the map markers, the outer gauge fill, and a clickable 1--7 scale legend that also serves as a level-based filter (selecting a level hides the glyph and highlights every municipality currently at that level nationally) — keeping the seven-way distinction available on demand (hover, or the filter) rather than always-on.
+
+\subsection{Positive/negative indicator highlights}
+\label{sec:positives}
+Mirroring the source platform's per-dimension ``Pontos Positivos'' / ``Pontos Negativos'' panel, hovering a dimension's name surfaces its two highest- and two lowest-scoring individual indicators (name and 1--7 level), computed offline (\S\ref{sec:data}) rather than on the fly, so this detail-on-demand view costs nothing at interaction time.
+
+\subsection{Data-completeness as first-class visual state}
+Because coverage is genuinely uneven — some topics have zero indicators reporting for a given city — we allocate ring-band radial thickness \emph{proportionally to whether data exists at all} for that municipality, collapsing no-data topics to thin slivers labeled only with their short code, versus full-height bands with full names for topics that do have data; hovering any band, populated or not, surfaces the same tooltip contract so the distinction is discoverable rather than merely inferred from size.
+
+\section{Case Study: Reconciling a Re-Implemented Scoring Pipeline}
+\label{sec:case}
+Once early comparisons against the live platform showed a specific city (Sorocaba, SP) at dimension level~3 for \emph{Meio Ambiente} in our tool versus level~4 in the source system, we obtained the platform's backend repository and traced the discrepancy to two independent causes, both invisible from the data export alone: (1) our pipeline rounded topic-level scores to integers \emph{before} averaging them into a dimension score, whereas the source system's decimal ``Desempenho'' values indicate the intended order is average-then-round-once; double rounding shifted several dimension scores by exactly one level. (2) our ``most recent value'' logic took an indicator's literal latest-dated row even when that row's maturity level was null, whereas the source system's own query explicitly filters to the latest \emph{non-null} row, silently dropping indicators (in one case, an entire topic, \emph{Gest\~ao de Desastres}) that our version had excluded. We regard this less as an implementation footnote than as a transferable warning for visualization work built on administrative data exports: a scoring pipeline's rounding order and null-handling semantics are load-bearing and are exactly the kind of detail that a data dump, without the source query, cannot reveal — and that a plausible-looking but wrong reconstruction will not obviously fail loudly. We now treat ``exact reproduction of at least one independently-verifiable reference value'' as a required check before any redesign work on the same pipeline, and surface data provenance (source year per value) in-glyph specifically so an analyst comparing our tool against the source platform has a fighting chance of noticing a future divergence themselves.
+
+\section{Implementation}
+The client is a single self-contained HTML file: an SVG glyph layer (\raise.17ex\hbox{$\scriptstyle\sim$}700 lines of vanilla JavaScript, no framework or build step) composited over a Leaflet~\cite{leaflet} basemap, styled with CSS custom properties. We chose a build-free single-file client deliberately: the deployment context is a static file host with no application server, and the intended audience (the platform's own research group, iterating on indicator definitions) needed to open, read, and hand-edit the file without a JavaScript toolchain.
+
+\textbf{Radial geometry.} Each dimension's wedge is proportional to its topic count (5\textdegree{} gaps); topics stack as concentric annular sectors between $R_{\text{inner}}$ and $R_{\text{outer}}$, both recomputed on resize as a fraction of the viewport's smaller dimension. Every arc — background track, value bar, gauge segment, average line — comes from one shared \texttt{annularSectorPath()} helper (center, radii, start/end angle $\rightarrow$ SVG path \texttt{d}).
+
+\textbf{Curved labels.} Topic names follow an invisible arc \texttt{<path>} via SVG \texttt{<textPath>}, with the arc's endpoints swapped for lower-half wedges so text never renders upside down — the single most common visual defect encountered while iterating on the layout.
+
+\textbf{Interaction cost.} The lens's nearest-neighbor scan (\S\ref{sec:lens}) is a linear pass over 5{,}571 points per animation frame, measured well under 1\,ms on commodity laptop hardware. Markers render on one shared Leaflet \texttt{Canvas} layer rather than per-marker DOM/SVG nodes, which was necessary to keep bulk restyling (e.g., recoloring all markers on level-filter toggle) from causing visible jank.
+
+\section{Discussion and Limitations}
+Our evaluation is informal: iterative critique from a single domain stakeholder (a member of the platform's own research group) across roughly a dozen design cycles, not a controlled study with representative analysts. We cannot yet claim the bullet-bar substitution, the lens interaction, or the dual-precision encoding measurably improve task performance over simpler alternatives (e.g., a small-multiples bar chart per dimension, or the source platform's own list-based view) — only that they resolved specific, named objections raised against the direct VisQuill-style port during development (illegible bilateral comparisons on single-observation data; an unreadable, always-on seven-color scale; a glyph center so visually heavy it obscured the very map point it was meant to annotate). A natural next step is a between-subjects comparison of this radial form against a non-radial dashboard equivalent on T1/T2-style tasks, with municipal-government analysts as participants, plus a broader audit of how many other indicators in the platform are affected by the rounding-order and null-handling issues identified in \S\ref{sec:case}, since our fix was verified against one municipality and one dimension, not exhaustively. We also did not implement a citizen/prefecture self-reporting completion indicator requested during design discussions, because the specific database export available to us at time of writing does not contain a table distinguishing self-reported from administratively-sourced observations; we flag this as a known gap rather than an oversight.
+
+\section{Conclusion}
+Porting a radial, bilateral, map-anchored demographic glyph to a non-bilateral, sparse, ordinally-scored administrative maturity dataset required more substitution than adaptation: the bilateral split became a bullet-graph tick, the always-visible seven-color scale became an on-demand two-tier one, the country-picker map became a continuously-panned lens, and the glyph's center — originally a display surface — became transparent so the map it annotates stays legible underneath it. We contribute this set of substitutions, and the data-provenance case study that motivated several of them, as a design account for others adapting demographic-style radial profiles to administrative and governmental indicator data, where the clean, complete, annually-refreshed panel that techniques like VisQuill's were designed around is the exception rather than the rule.
+
+\bibliographystyle{plain}
+\begin{thebibliography}{9}
+
+\bibitem{few2006bullet}
+S.~Few, ``Bullet Graphs Design Specification,'' Perceptual Edge, Visual Business Intelligence Newsletter, 2006.
+
+\bibitem{iso37120}
+International Organization for Standardization, \emph{ISO 37120:2018 — Sustainable cities and communities — Indicators for city services and quality of life}, ISO, Geneva, 2018.
+
+\bibitem{itu-y4903}
+ITU-T, \emph{Recommendation ITU-T Y.4903/L.1603 — Key performance indicators for smart sustainable cities to assess the achievement of sustainable development goals}, International Telecommunication Union, 2016.
+
+\bibitem{u4ssc}
+United for Smart Sustainable Cities (U4SSC), \emph{Smart Sustainable Cities Maturity Model}, ITU/UNECE, 2021.
+
+\bibitem{leaflet}
+V.~Agafonkin et al., \emph{Leaflet: an open-source JavaScript library for mobile-friendly interactive maps}, \url{https://leafletjs.com}.
+
+\end{thebibliography}
+
+\end{document}

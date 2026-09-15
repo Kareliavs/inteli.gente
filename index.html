@@ -91,7 +91,7 @@
   .tick-label-row{position:absolute;bottom:38px;right:14px;font-family:var(--mono);font-size:9px;
     color:var(--muted);display:flex;gap:36px;z-index:1000;pointer-events:none;}
 
-  .dim-label{font-family:var(--mono);font-weight:700;font-size:12px;fill:var(--text);cursor:help;}
+  .dim-label{font-family:var(--mono);font-weight:700;font-size:12px;fill:var(--text);cursor:help;pointer-events:auto;}
   .ring-seg{cursor:pointer;pointer-events:auto;}
   .ring-seg.current{fill:var(--current);}
   .ring-tick{stroke:#fff;stroke-width:1.6;stroke-linecap:round;pointer-events:none;}
@@ -223,7 +223,7 @@ async function loadData(){
       no: r.score_old? parseFloat(r.score_old): null, yo: r.ano_old? parseInt(r.ano_old): null,
     };
   });
-  const destRows = fastSplitCSV(destaquesTxt);
+  const destRows = parseCSV(destaquesTxt);
   const DESTAQUES = {}; // cod -> dim -> {pos:[...], neg:[...]}
   destRows.forEach(r=>{
     if(!DESTAQUES[r.cod_ibge]) DESTAQUES[r.cod_ibge] = {};
